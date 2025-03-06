@@ -8,6 +8,8 @@ public class Shooter : MonoBehaviour
 
     void Update()
     {
+        if (Level.gameOver) return;
+        
         RotateToMouse();
     }
 

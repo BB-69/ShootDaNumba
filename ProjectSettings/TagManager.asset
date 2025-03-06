@@ -9,6 +9,8 @@ TagManager:
   - Bullet
   - Booster
   - Wall
+  - BulletInverted
+  - BaseGlock
   layers:
   - Default
   - TransparentFX

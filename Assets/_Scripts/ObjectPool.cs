@@ -38,6 +38,9 @@ public class ObjectPool : MonoBehaviour
     [Header("Glock Setup")]
     public Glock glock;
 
+    [Header("Explosion Setup")]
+    public Explosion explosion;
+
     private void Start()
     {
         despawnPos.y = sideWall.localPosition.y + sideWall.localScale.y/2;
@@ -57,7 +60,7 @@ public class ObjectPool : MonoBehaviour
     {
         // Ball
         ballLoop += Time.deltaTime;
-        if (ballLoop > 3f) {ballMedian++; ballLoop = 0f;}
+        if (ballLoop > 6f) {ballMedian++; ballLoop = 0f;}
     }
 
     private IEnumerator CheckInActiveObj()
@@ -87,6 +90,7 @@ public class ObjectPool : MonoBehaviour
         startInstantiate = true;
         while (true) {
             yield return new WaitForSeconds(loopInterval);
+            if (Level.gameOver) break;
             InstantiateObjectManually();
         }
     }
@@ -98,6 +102,9 @@ public class ObjectPool : MonoBehaviour
 
         if (glock != null) {
             glock.SetBulletProperty(obj);
+        }
+        if (explosion != null) {
+            Ball.SetExplosionPos(obj);
         }
 
         obj.SetActive(true);

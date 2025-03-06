@@ -72,7 +72,9 @@ public class Bullet : Shooter
         if (!gameObject.activeInHierarchy) return;
 
         if (collision.gameObject.CompareTag("Wall")) StartCoroutine(Disappear());
-        else if (!collision.gameObject.CompareTag("Base") && !collision.gameObject.CompareTag("Bullet")) Explode();
+        else if (!collision.gameObject.CompareTag("Base") &&
+            !collision.gameObject.CompareTag("BaseGlock") &&
+            !collision.gameObject.CompareTag("Bullet")) Explode();
     }
 
     IEnumerator Disappear()
@@ -105,10 +107,13 @@ public class Bullet : Shooter
 
     void SetAlpha(float a)
     {
-        Color col = GetComponent<SpriteRenderer>().color;
+        try {
+            Color col;
+            col = GetComponent<SpriteRenderer>().color;
 
-        col.a = a;
-        GetComponent<SpriteRenderer>().color = col;
+            col.a = a;
+            GetComponent<SpriteRenderer>().color = col;
+        } catch {}
 
         for (int i = 0; i < transform.childCount; i++) {
             GameObject obj = transform.GetChild (i).gameObject;

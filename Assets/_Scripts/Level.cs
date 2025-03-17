@@ -5,13 +5,12 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using System.Threading.Tasks;
 
 public class Level : MonoBehaviour
 {
     public ObjectPool objPool;
     public static float originLoop, currentLoop;
-    
+
     [Header("Statics")]
     public TextMeshPro levelText;
     public TextMeshPro expText;
@@ -21,12 +20,12 @@ public class Level : MonoBehaviour
 
     public static int level = 1, exp = 0, highestLevel = 0;
     private static int expCap => level * level;
-
     private static bool toggleLevelDown = false;
 
     void Start()
     {
-        gameOver = false; toggleGameOverScreen = false;
+        gameOver = false;
+        toggleGameOverScreen = false;
 
         originLoop = objPool.loopInterval;
 
@@ -41,30 +40,46 @@ public class Level : MonoBehaviour
     void Update()
     {
         highestLevel = Mathf.Max(highestLevel, level);
-        if (toggleGameOverScreen) {
+
+        if (toggleGameOverScreen)
+        {
             gameOverScreen.SetActive(true);
             highScoreText.text = $"Highest Level = {highestLevel}";
         }
 
-        try {
+        try
+        {
             levelText.text = $"{level}";
             expText.text = $"EXP: {exp}/{expCap}";
             SideEXPIndicator();
             if (gameOver) return;
         }
-        catch {}
+        catch (Exception e) // Log errors in WebGL
+        {
+            Debug.LogError($"Error in Update(): {e.Message}");
+        }
 
         objPool.loopInterval -= 0.010f * Time.deltaTime;
-        if (objPool.loopInterval < 0.8f) {objPool.loopInterval = originLoop; StartCoroutine(GameJump());}
+        if (objPool.loopInterval < 0.8f)
+        {
+            objPool.loopInterval = originLoop;
+            StartCoroutine(GameJump());
+        }
 
-        if (toggleLevelDown) {toggleLevelDown = false; colorInitializeLevel.InvokeColor("Red", 1f);}
+        if (toggleLevelDown)
+        {
+            toggleLevelDown = false;
+            colorInitializeLevel.InvokeColor("Red", 1f);
+        }
     }
 
     public static void LevelUp()
     {
         exp++;
-        if (exp >= expCap) {
-            level++; exp = 0;
+        if (exp >= expCap)
+        {
+            level++;
+            exp = 0;
             Glock.reload = true;
         }
     }
@@ -72,18 +87,32 @@ public class Level : MonoBehaviour
     public static void LevelDown(int expDecrement)
     {
         exp -= expDecrement;
-        if (exp <= 0) {level--; exp = expCap;}
+        if (exp <= 0)
+        {
+            level--;
+            exp = expCap;
+        }
         toggleLevelDown = true;
-        if (level <= 0 && !gameOver) {level = 0; GameOver();}
+        if (level <= 0 && !gameOver)
+        {
+            level = 0;
+            Instance.StartCoroutine(Instance.GameOverCoroutine()); // WebGL-friendly coroutine
+        }
     }
 
     private void SideEXPIndicator()
     {
-        if (expIndicator[0].value == exp/(float)expCap) return;
-        else if (Mathf.Abs( exp/(float)expCap - expIndicator[0].value ) < snapDelta) for (int i = 0; i < expIndicator.Length; i++) {
-            expIndicator[i].value = exp/(float)expCap;
-        } else for (int i = 0; i < expIndicator.Length; i++) {
-                expIndicator[i].value = Mathf.Lerp(expIndicator[i].value, exp/(float)expCap, expSpeed * Time.deltaTime);
+        float targetValue = exp / (float)expCap;
+
+        if (Mathf.Abs(targetValue - expIndicator[0].value) < snapDelta)
+        {
+            foreach (var slider in expIndicator)
+                slider.value = targetValue;
+        }
+        else
+        {
+            foreach (var slider in expIndicator)
+                slider.value = Mathf.Lerp(slider.value, targetValue, expSpeed * Time.deltaTime);
         }
     }
 
@@ -98,53 +127,67 @@ public class Level : MonoBehaviour
         Debug.Log("Game Jumping!");
         AudioManager.PlaySound("Thunder");
         AudioManager.PlaySound("NumberFill");
-        objPool.ballMedian += Level.level * 20;
+        objPool.ballMedian += Level.level;
+
         Color oldCol = gameJumpFX.color, newCol = oldCol;
-        oldCol.a = 0f; newCol.a = 0.7f;
+        oldCol.a = 0f;
+        newCol.a = 0.7f;
 
         float time = 0f, duration = 2f;
 
         Ball.gameJump = true;
-        while (time < duration * 1/4f) {
-            gameJumpFX.color = Color.Lerp(oldCol, newCol, time / (duration * 1/4f));
+        while (time < duration * 1 / 4f)
+        {
+            gameJumpFX.color = Color.Lerp(oldCol, newCol, time / (duration * 1 / 4f));
             time += Time.deltaTime;
             yield return null;
-        } gameJumpFX.color = newCol;
+        }
+        gameJumpFX.color = newCol;
 
-        yield return new WaitForSeconds(duration * 1/2f);
+        yield return new WaitForSeconds(duration * 1 / 2f);
         time = 0f;
 
-        while (time < duration * 1/4f) {
-            gameJumpFX.color = Color.Lerp(newCol, oldCol, time / (duration * 1/4f));
+        while (time < duration * 1 / 4f)
+        {
+            gameJumpFX.color = Color.Lerp(newCol, oldCol, time / (duration * 1 / 4f));
             time += Time.deltaTime;
             yield return null;
-        } gameJumpFX.color = oldCol;
+        }
+        gameJumpFX.color = oldCol;
         Ball.gameJump = false;
         AudioManager.StopSound("NumberFill");
     }
 
-    public static async void GameOver()
+    public static Level Instance { get; private set; }
+
+    void Awake()
+    {
+        Instance = this; // Allows static methods to call instance coroutines
+    }
+
+    public IEnumerator GameOverCoroutine()
     {
         gameOver = true;
         AudioManager.PlaySound("BassDrop");
 
         Color oldCol = gameJumpFX.color, newCol = oldCol;
-        oldCol.a = 0f; newCol.a = 0.7f;
-        newCol.g = 0f; newCol.b = 0.6f;
+        oldCol.a = 0f;
+        newCol.a = 0.7f;
+        newCol.g = 0f;
+        newCol.b = 0.6f;
 
         float duration = 0.5f * 1 / 4f;
-        float stepTime = 0.01f;
         float elapsedTime = 0f;
 
         while (elapsedTime < duration)
         {
             gameJumpFX.color = Color.Lerp(oldCol, newCol, elapsedTime / duration);
-            elapsedTime += stepTime;
-            await Task.Delay((int)(stepTime * 1000)); // Convert seconds to milliseconds
+            elapsedTime += Time.deltaTime;
+            yield return null;
         }
         gameJumpFX.color = newCol;
 
-        await Task.Delay(2500); // Wait 2.5 seconds
+        yield return new WaitForSeconds(2.5f); // 2.5 seconds delay
 
         toggleGameOverScreen = true;
     }

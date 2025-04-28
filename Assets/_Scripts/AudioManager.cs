@@ -9,13 +9,21 @@ public class AudioManager : MonoBehaviour
     private static Dictionary<string, AudioSource> audioSource = new Dictionary<string, AudioSource>();
     private static System.Random rnd = new System.Random();
 
-    void Start()
+    void OnEnable()
     {
         for (int i = 0; i < transform.childCount; i++) {
             GameObject child = transform.GetChild(i).gameObject;
             string name = child.name;
             AudioSource audio = child.GetComponent<AudioSource>();
             audioSource[name] = audio;
+        }
+    }
+
+    void Update()
+    {
+        if (Level.toggleReset) {
+            audioSource = new Dictionary<string, AudioSource>();
+            rnd = new System.Random();
         }
     }
 

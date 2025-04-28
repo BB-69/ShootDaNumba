@@ -80,6 +80,10 @@ public class Ball : MonoBehaviour
 
     void Update()
     {
+        if (Level.toggleGameOverScreen) {
+            Disappear();
+        }
+
         UpdateInitialize();
         jumpRepeat += Time.deltaTime;
 

@@ -22,10 +22,14 @@ public class Level : MonoBehaviour
     private static int expCap => level * level;
     private static bool toggleLevelDown = false;
 
-    void Start()
+    private float totalTime = 0.0f;
+
+    void OnEnable()
     {
         gameOver = false;
         toggleGameOverScreen = false;
+        toggleReset = false;
+        level = 1;
 
         originLoop = objPool.loopInterval;
 
@@ -45,7 +49,28 @@ public class Level : MonoBehaviour
         {
             gameOverScreen.SetActive(true);
             highScoreText.text = $"Highest Level = {highestLevel}";
+
+            // Final total time initialize
+            int totalHour, totalMin, totalSecond;
+            if (totalTime > 3600) {
+                totalHour = (int) Mathf.Floor(totalTime / 3600f);
+                totalMin = (int) totalTime % 3600;
+                totalSecond = (int) totalTime % 60;
+                totalTimeText.text = $"Time Survived: {totalHour}h {totalMin}m {totalSecond}s";
+            } else if (totalTime > 60) {
+                totalMin = (int) Mathf.Floor(totalTime / 60f);
+                totalSecond = (int) totalTime % 60;
+                totalTimeText.text = $"Time Survived: {totalMin}m {totalSecond}s";
+            } else {
+                totalSecond = (int) Mathf.Floor(totalTime);
+                totalTimeText.text = $"Time Survived: {totalSecond}s";
+            }
+            
+            if (Input.anyKeyDown) {
+                ResetGame();
+            }
         }
+        else totalTime += Time.deltaTime;
 
         try
         {
@@ -120,7 +145,7 @@ public class Level : MonoBehaviour
     public ColorInitialize colorInitializeLevel;
     public GameObject gameJumpFXObj;
     private static SpriteRenderer gameJumpFX;
-    public static bool gameOver, toggleGameOverScreen;
+    public static bool gameOver, toggleGameOverScreen, toggleReset;
 
     public IEnumerator GameJump()
     {
@@ -195,4 +220,13 @@ public class Level : MonoBehaviour
     [Header("Game Over")]
     public GameObject gameOverScreen;
     public TextMeshPro highScoreText;
+    public TextMeshPro totalTimeText;
+
+    void ResetGame()
+    {
+        toggleReset = true;
+        toggleGameOverScreen = false;
+
+        SceneManager.LoadScene("SampleScene");
+    }
 }
